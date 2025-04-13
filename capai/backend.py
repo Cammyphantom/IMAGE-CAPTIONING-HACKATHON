@@ -1,11 +1,26 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify,send_file
 import io
 from PIL import Image
 from main import get_caption
 from flask_cors import CORS
-
+from io import BytesIO
+from main_gemini import draw_caption
 app = Flask(__name__)
 CORS(app)
+@app.route('/roast', methods=['POST'])
+def roast():
+    if 'image' not in request.files:
+        return jsonify({"error": "No image provided"}), 400
+
+    file = request.files['image']
+    image = Image.open(file.stream).convert("RGB")
+    roasted = draw_caption(image)
+
+    # Save to memory for sending
+    img_io = BytesIO()
+    roasted.save(img_io, 'JPEG')
+    img_io.seek(0)
+    return send_file(img_io, mimetype='image/jpeg')
 @app.route('/get-caption', methods=['POST'])
 def get_caption_api():
     if 'image' not in request.files:
